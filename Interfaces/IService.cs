@@ -1,4 +1,6 @@
-﻿namespace Netwise.Interfaces
+﻿using Netwise.Model;
+
+namespace Netwise.Interfaces
 {
     public interface IService
     {

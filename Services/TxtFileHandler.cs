@@ -1,11 +1,12 @@
 ﻿using Netwise.Interfaces;
+using Netwise.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Netwise
+namespace Netwise.Services
 {
     public class TxtFileHandler : IFileHandler
     {

@@ -1,35 +1,41 @@
-﻿using Netwise;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Netwise.Interfaces;
+using Netwise.Models;
+using Netwise.Services;
+using Netwise.View;
+using Netwise.Controllers;
 using System.Security.Cryptography.X509Certificates;
 
 class Program
 {
     static async Task Main(string[] args)
     {
-        string txtFilePath = "D:\\Własne Projekty\\RecruitmentTask\\Netwise\\cat_facts.txt";
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("D:\\Własne Projekty\\RecruitmentTask\\Netwise\\appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
 
-        FactService service = new FactService(new HttpClient());
-        TxtFileHandler TxtFileHandler = new TxtFileHandler(txtFilePath);
+        var catFactConfig = configuration.GetSection("CatFact").Get<CatFactConfig>();
 
-        while (true)
+        if(catFactConfig == null)
         {
-            Console.WriteLine("1-Connect 2-Display file 3-Exit");
-            string? choice = Console.ReadLine();
-            switch (choice)
-            {
-                case "1":
-                    CatFact catFact = await service.GetFact();
-                    TxtFileHandler.SaveFact(catFact);
-                    break;
-                case "2":
-                    TxtFileHandler.DisplayFile();
-                    break;
-                case "3":
-                    Console.WriteLine("Exiting the application.");
-                    return;
-                default:
-                    Console.WriteLine("Invalid choice, try again.");
-                    continue;
-            }
+            throw new ArgumentNullException();
         }
+
+        var serviceProvider = new ServiceCollection()
+            .AddSingleton(catFactConfig)
+            .AddSingleton<HttpClient>()
+            .AddSingleton<IService, FactService>()
+            .AddSingleton<TxtFileHandler>()
+            .BuildServiceProvider();
+
+        var service = serviceProvider.GetRequiredService<IService>();
+        var fileHandler = new TxtFileHandler(catFactConfig.TxtFilePath);
+
+        var view = new MainView();
+        var Controller = new MainController(service, fileHandler, view);
+
+        await Controller.RunAsync();
     }
 }
