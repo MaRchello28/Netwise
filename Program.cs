@@ -5,7 +5,9 @@ using Netwise.Models;
 using Netwise.Services;
 using Netwise.View;
 using Netwise.Controllers;
-using System.Security.Cryptography.X509Certificates;
+using System.IO;
+using System.Threading.Tasks;
+using System.Net.Http;
 
 class Program
 {
@@ -18,24 +20,25 @@ class Program
 
         var catFactConfig = configuration.GetSection("CatFact").Get<CatFactConfig>();
 
-        if(catFactConfig == null)
+        if (catFactConfig == null)
         {
-            throw new ArgumentNullException();
+            throw new ArgumentNullException(nameof(catFactConfig), "CatFact configuration section is missing or invalid.");
         }
 
         var serviceProvider = new ServiceCollection()
             .AddSingleton(catFactConfig)
             .AddSingleton<HttpClient>()
             .AddSingleton<IService, FactService>()
-            .AddSingleton<TxtFileHandler>()
+            .AddSingleton<TxtFileHandler>(provider =>
+            {
+                var config = provider.GetRequiredService<CatFactConfig>();
+                return new TxtFileHandler(config.TxtFilePath);
+            })
+            .AddSingleton<MainView>()
+            .AddSingleton<MainController>()
             .BuildServiceProvider();
 
-        var service = serviceProvider.GetRequiredService<IService>();
-        var fileHandler = new TxtFileHandler(catFactConfig.TxtFilePath);
-
-        var view = new MainView();
-        var Controller = new MainController(service, fileHandler, view);
-
-        await Controller.RunAsync();
+        var controller = serviceProvider.GetRequiredService<MainController>();
+        await controller.RunAsync();
     }
 }
